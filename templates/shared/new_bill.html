@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+{% block content %}
+<h3 class="section-title mb-3"><i class="bi bi-receipt text-warning me-2"></i>New Bill</h3>
+
+<form method="POST" id="billForm">
+<div class="row g-4">
+  <div class="col-md-4">
+    <div class="card p-4 mb-3">
+      <h6 class="fw-bold mb-3"><i class="bi bi-person-circle me-1"></i>Customer</h6>
+      <div class="mb-2">
+        <label class="form-label small">Phone Number</label>
+        <input type="text" class="form-control" id="customer_phone" name="customer_phone" list="customerList" placeholder="10-digit phone" required>
+        <datalist id="customerList">
+          {% for c in customers %}
+          <option value="{{ c.phone }}" data-name="{{ c.name }}" data-email="{{ c.email or '' }}">{{ c.name }}</option>
+          {% endfor %}
+        </datalist>
+      </div>
+      <div class="mb-2">
+        <label class="form-label small">Name</label>
+        <input type="text" class="form-control" id="customer_name" name="customer_name" required>
+      </div>
+      <div class="mb-1">
+        <label class="form-label small">Email (optional)</label>
+        <input type="email" class="form-control" id="customer_email" name="customer_email">
+      </div>
+      <div class="form-text"><i class="bi bi-info-circle me-1"></i>Existing customer? Type their phone — details auto-fill.</div>
+    </div>
+
+    <div class="card p-4">
+      <h6 class="fw-bold mb-3"><i class="bi bi-plus-square me-1"></i>Add Item</h6>
+      <div class="mb-2">
+        <label class="form-label small">Material</label>
+        <select class="form-select" id="pick_material">
+          <option value="">Select item...</option>
+          {% for m in materials %}
+          <option value="{{ m.id }}"
+                  data-name="{{ m.name }}" data-emoji="{{ m.image_emoji }}"
+                  data-price="{{ m.price_per_day }}" data-deposit="{{ m.deposit_amount }}"
+                  data-stock="{{ m.quantity_available }}">
+            {{ m.image_emoji }} {{ m.name }} (₹{{ m.price_per_day|round(0)|int }}/day, {{ m.quantity_available }} in stock)
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="row g-2">
+        <div class="col-6">
+          <label class="form-label small">Start Date</label>
+          <input type="date" class="form-control" id="pick_start">
+        </div>
+        <div class="col-6">
+          <label class="form-label small">End Date</label>
+          <input type="date" class="form-control" id="pick_end">
+        </div>
+      </div>
+      <div class="mb-2 mt-2">
+        <label class="form-label small">Quantity</label>
+        <input type="number" class="form-control" id="pick_qty" min="1" value="1">
+      </div>
+      <div class="small text-muted mb-2" id="stockHint"></div>
+      <button type="button" class="btn btn-outline-brand w-100" id="addToCartBtn"><i class="bi bi-cart-plus me-1"></i>Add to Cart</button>
+    </div>
+  </div>
+
+  <div class="col-md-8">
+    <div class="card p-4">
+      <h6 class="fw-bold mb-3"><i class="bi bi-cart3 me-1"></i>Cart</h6>
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead><tr><th>Item</th><th>Dates</th><th>Qty</th><th>Rate/day</th><th>Amount</th><th></th></tr></thead>
+          <tbody id="cartBody">
+            <tr id="emptyRow"><td colspan="6" class="text-muted text-center py-4">Cart is empty — add items on the left.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="bg-light rounded-xl p-3 mt-2">
+        <div class="d-flex justify-content-between small mb-1"><span>Rental Subtotal</span><span id="sumRent">₹0</span></div>
+        <div class="d-flex justify-content-between small mb-1"><span>Refundable Deposit</span><span id="sumDeposit">₹0</span></div>
+        <hr class="my-2">
+        <div class="d-flex justify-content-between fw-bold fs-5"><span>Total Payable</span><span id="sumTotal">₹0</span></div>
+      </div>
+      <input type="hidden" name="cart_json" id="cartJson">
+      <button type="submit" class="btn btn-brand w-100 py-2 mt-3" id="submitBillBtn" disabled><i class="bi bi-check2-circle me-1"></i>Create Bill & Generate Invoice</button>
+    </div>
+  </div>
+</div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function(){
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById('pick_start').value = today;
+  const d1 = new Date(); d1.setDate(d1.getDate()+1);
+  document.getElementById('pick_end').value = d1.toISOString().slice(0,10);
+
+  // customer autofill
+  const phoneInput = document.getElementById('customer_phone');
+  const nameInput = document.getElementById('customer_name');
+  const emailInput = document.getElementById('customer_email');
+  const datalist = document.getElementById('customerList');
+  phoneInput.addEventListener('input', function(){
+    const opt = Array.from(datalist.options).find(o => o.value === phoneInput.value);
+    if (opt){
+      nameInput.value = opt.dataset.name || '';
+      emailInput.value = opt.dataset.email || '';
+    }
+  });
+
+  const materialSelect = document.getElementById('pick_material');
+  const stockHint = document.getElementById('stockHint');
+  materialSelect.addEventListener('change', function(){
+    const opt = materialSelect.options[materialSelect.selectedIndex];
+    if (opt && opt.value){
+      stockHint.innerHTML = `₹${opt.dataset.price}/day · deposit ₹${opt.dataset.deposit} · <strong>${opt.dataset.stock}</strong> in stock`;
+      document.getElementById('pick_qty').max = opt.dataset.stock;
+    } else {
+      stockHint.innerHTML = '';
+    }
+  });
+
+  let cart = [];
+
+  function fmt(n){ return '₹' + Math.round(n).toLocaleString('en-IN'); }
+
+  function renderCart(){
+    const body = document.getElementById('cartBody');
+    if (cart.length === 0){
+      body.innerHTML = '<tr id="emptyRow"><td colspan="6" class="text-muted text-center py-4">Cart is empty — add items on the left.</td></tr>';
+    } else {
+      body.innerHTML = cart.map((row, idx) => `
+        <tr>
+          <td>${row.emoji} ${row.name}</td>
+          <td class="small">${row.start_date} → ${row.end_date}<div class="text-muted">${row.days} day(s)</div></td>
+          <td>${row.quantity}</td>
+          <td>₹${row.price}</td>
+          <td class="fw-semibold">${fmt(row.amount)}<div class="small text-muted">+${fmt(row.deposit)} dep.</div></td>
+          <td><button type="button" class="btn btn-sm btn-outline-danger" onclick="removeCartItem(${idx})"><i class="bi bi-trash"></i></button></td>
+        </tr>
+      `).join('');
+    }
+    const sumRent = cart.reduce((s,r) => s + r.amount, 0);
+    const sumDep = cart.reduce((s,r) => s + r.deposit, 0);
+    document.getElementById('sumRent').innerText = fmt(sumRent);
+    document.getElementById('sumDeposit').innerText = fmt(sumDep);
+    document.getElementById('sumTotal').innerText = fmt(sumRent + sumDep);
+    document.getElementById('cartJson').value = JSON.stringify(cart.map(r => ({
+      material_id: r.material_id, quantity: r.quantity, start_date: r.start_date, end_date: r.end_date
+    })));
+    document.getElementById('submitBillBtn').disabled = cart.length === 0;
+  }
+
+  window.removeCartItem = function(idx){
+    cart.splice(idx, 1);
+    renderCart();
+  };
+
+  document.getElementById('addToCartBtn').addEventListener('click', function(){
+    const opt = materialSelect.options[materialSelect.selectedIndex];
+    if (!opt || !opt.value){ alert('Please select a material.'); return; }
+    const start = document.getElementById('pick_start').value;
+    const end = document.getElementById('pick_end').value;
+    const qty = parseInt(document.getElementById('pick_qty').value) || 1;
+    const stock = parseInt(opt.dataset.stock);
+    if (!start || !end || end <= start){ alert('Please choose a valid date range.'); return; }
+    if (qty < 1 || qty > stock){ alert(`Only ${stock} unit(s) available.`); return; }
+
+    const days = Math.max(Math.round((new Date(end) - new Date(start)) / 86400000), 1);
+    const price = parseFloat(opt.dataset.price);
+    const deposit = parseFloat(opt.dataset.deposit);
+
+    cart.push({
+      material_id: opt.value, name: opt.dataset.name, emoji: opt.dataset.emoji,
+      start_date: start, end_date: end, quantity: qty, days: days,
+      price: price, amount: days * price * qty, deposit: deposit * qty
+    });
+    renderCart();
+    materialSelect.value = '';
+    stockHint.innerHTML = '';
+    document.getElementById('pick_qty').value = 1;
+  });
+
+  document.getElementById('billForm').addEventListener('submit', function(e){
+    if (cart.length === 0){ e.preventDefault(); alert('Add at least one item to the cart.'); }
+  });
+
+  renderCart();
+})();
+</script>
+{% endblock %}

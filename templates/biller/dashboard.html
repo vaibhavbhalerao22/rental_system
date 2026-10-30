@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block content %}
+<h3 class="section-title">Welcome, {{ current_user.name.split(' ')[0] }} 🧾</h3>
+<div class="row g-3 my-3">
+  <div class="col-md-3">
+    <div class="stat-card">
+      <div class="icon-badge bg-tint-orange"><i class="bi bi-receipt"></i></div>
+      <div class="text-muted small">Bills Today (you)</div>
+      <div class="fs-3 fw-bold">{{ todays_count }}</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card">
+      <div class="icon-badge bg-tint-teal"><i class="bi bi-cash-coin"></i></div>
+      <div class="text-muted small">Today's Billing (you)</div>
+      <div class="fs-4 fw-bold">₹{{ todays_revenue|round(0)|int }}</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card">
+      <div class="icon-badge bg-tint-blue"><i class="bi bi-truck"></i></div>
+      <div class="text-muted small">Active Rentals</div>
+      <div class="fs-3 fw-bold">{{ active_count }}</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card">
+      <div class="icon-badge bg-tint-red"><i class="bi bi-exclamation-triangle"></i></div>
+      <div class="text-muted small">Overdue Returns</div>
+      <div class="fs-3 fw-bold">{{ overdue_count }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mt-1">
+  <div class="col-md-4">
+    <a href="{{ url_for('new_bill') }}" class="quicklink-card">
+      <div class="icon-badge bg-tint-orange"><i class="bi bi-receipt"></i></div>
+      <div class="fw-semibold">Create New Bill</div>
+      <div class="text-muted small">Start billing a walk-in customer</div>
+    </a>
+  </div>
+  <div class="col-md-4">
+    <a href="{{ url_for('active_rentals') }}" class="quicklink-card">
+      <div class="icon-badge bg-tint-blue"><i class="bi bi-truck"></i></div>
+      <div class="fw-semibold">Process Returns</div>
+      <div class="text-muted small">Mark rented items as returned</div>
+    </a>
+  </div>
+  <div class="col-md-4">
+    <a href="{{ url_for('bills_list') }}" class="quicklink-card">
+      <div class="icon-badge bg-tint-teal"><i class="bi bi-journal-text"></i></div>
+      <div class="fw-semibold">All Bills</div>
+      <div class="text-muted small">Search & view past invoices</div>
+    </a>
+  </div>
+</div>
+
+<h5 class="mt-4 mb-3 section-title"><i class="bi bi-clock-history me-2 text-warning"></i>Recent Bills</h5>
+<div class="bg-white rounded-xl shadow-sm overflow-hidden">
+<table class="table mb-0 align-middle">
+  <thead><tr><th>Bill</th><th>Customer</th><th>Billed By</th><th>Status</th><th>Total</th></tr></thead>
+  <tbody>
+    {% for b in recent_bills %}
+    <tr>
+      <td><a href="{{ url_for('bill_detail', bill_id=b.id) }}">#BR-{{ '%04d'|format(b.id) }}</a></td>
+      <td>{{ b.customer.name }}</td>
+      <td>{{ b.biller.name }}</td>
+      <td><span class="badge-status badge-{{ b.status }}">{{ b.status }}</span></td>
+      <td class="fw-semibold">₹{{ b.grand_total|round(0)|int }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5" class="text-muted text-center py-4">No bills yet.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

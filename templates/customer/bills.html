@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<h3 class="section-title mb-3"><i class="bi bi-journal-check text-warning me-2"></i>My Rental History</h3>
+<div class="row g-3">
+{% for b in bills %}
+  <div class="col-12">
+    <div class="card p-4">
+      <div class="row align-items-center">
+        <div class="col-md-2">
+          <div class="fw-bold">#BR-{{ '%04d'|format(b.id) }}</div>
+          <div class="text-muted small">{{ b.created_at.strftime('%d %b %Y') }}</div>
+        </div>
+        <div class="col-md-5">
+          {% for i in b.items %}
+          <span class="badge bg-light text-dark border me-1 mb-1">{{ i.material.image_emoji }} {{ i.material.name }} ×{{ i.quantity }}</span>
+          {% endfor %}
+        </div>
+        <div class="col-md-2">
+          <span class="badge-status badge-{{ b.status }}">{{ b.status }}</span>
+          {% if b.is_overdue %}<div class="mt-1"><span class="badge bg-danger">Overdue</span></div>{% endif %}
+        </div>
+        <div class="col-md-2">
+          <div class="fw-bold">₹{{ b.grand_total|round(0)|int }}</div>
+        </div>
+        <div class="col-md-1 text-md-end">
+          <a href="{{ url_for('customer_bill_invoice', bill_id=b.id) }}" class="btn btn-sm btn-outline-brand" target="_blank">View</a>
+        </div>
+      </div>
+    </div>
+  </div>
+{% else %}
+  <div class="col-12 text-center py-5">
+    <i class="bi bi-inbox display-4 text-muted"></i>
+    <p class="text-muted mt-2">No rentals yet. Visit the shop to get started!</p>
+  </div>
+{% endfor %}
+</div>
+{% endblock %}

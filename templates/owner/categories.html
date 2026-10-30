@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<h3 class="section-title mb-3"><i class="bi bi-tags text-warning me-2"></i>Categories</h3>
+<div class="row g-3">
+  <div class="col-md-4">
+    <div class="card p-4">
+      <h6 class="fw-bold mb-3">Add Category</h6>
+      <form method="POST">
+        <div class="mb-2">
+          <input type="text" class="form-control" name="name" placeholder="Category name" required>
+        </div>
+        <div class="mb-3">
+          <input type="text" class="form-control" name="icon" placeholder="Emoji icon (e.g. 🔨)" maxlength="4">
+        </div>
+        <button class="btn btn-brand w-100"><i class="bi bi-plus-lg me-1"></i>Add</button>
+      </form>
+    </div>
+  </div>
+  <div class="col-md-8">
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+    <table class="table mb-0 align-middle">
+      <thead><tr><th></th><th>Name</th><th># Materials</th><th class="text-end"></th></tr></thead>
+      <tbody>
+        {% for c in categories %}
+        <tr>
+          <td class="fs-4">{{ c.icon }}</td>
+          <td class="fw-semibold">{{ c.name }}</td>
+          <td>{{ c.materials|length }}</td>
+          <td class="text-end">
+            <form method="POST" action="{{ url_for('delete_category', cat_id=c.id) }}" onsubmit="return confirm('Delete category?');">
+              <button class="btn btn-sm btn-outline-danger" {% if c.materials %}disabled title="Has materials"{% endif %}><i class="bi bi-trash"></i></button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

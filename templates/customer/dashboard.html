@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+<h3 class="section-title">Welcome back, {{ current_user.name.split(' ')[0] }} 👋</h3>
+<div class="row g-3 my-3">
+  <div class="col-md-4">
+    <div class="stat-card">
+      <div class="icon-badge bg-tint-orange"><i class="bi bi-hourglass-split"></i></div>
+      <div class="text-muted small">Active Rentals</div>
+      <div class="fs-3 fw-bold">{{ active_count }}</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="stat-card">
+      <div class="icon-badge bg-tint-blue"><i class="bi bi-journal-text"></i></div>
+      <div class="text-muted small">Total Bills</div>
+      <div class="fs-3 fw-bold">{{ total_bills }}</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <a href="{{ url_for('customer_bills') }}" class="quicklink-card">
+      <div class="icon-badge bg-tint-teal"><i class="bi bi-journal-check"></i></div>
+      <div class="fw-semibold">My Rentals</div>
+      <div class="text-muted small">View bills & print invoices</div>
+    </a>
+  </div>
+</div>
+
+<h5 class="mt-4 mb-3 section-title"><i class="bi bi-clock-history me-2 text-warning"></i>Recent Bills</h5>
+<div class="bg-white rounded-xl shadow-sm overflow-hidden">
+<table class="table mb-0 align-middle">
+  <thead><tr><th>Bill</th><th>Items</th><th>Status</th><th>Total</th><th></th></tr></thead>
+  <tbody>
+    {% for b in bills %}
+    <tr>
+      <td>#BR-{{ '%04d'|format(b.id) }}<div class="small text-muted">{{ b.created_at.strftime('%d %b %Y') }}</div></td>
+      <td>{% for i in b.items %}{{ i.material.image_emoji }} {% endfor %}<div class="small text-muted">{{ b.items|length }} item(s)</div></td>
+      <td><span class="badge-status badge-{{ b.status }}">{{ b.status }}</span></td>
+      <td class="fw-semibold">₹{{ b.grand_total|round(0)|int }}</td>
+      <td><a href="{{ url_for('customer_bill_invoice', bill_id=b.id) }}" class="btn btn-sm btn-outline-brand">View</a></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5" class="text-muted text-center py-4">No rentals yet.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3 class="section-title mb-0"><i class="bi bi-journal-text text-warning me-2"></i>All Bills</h3>
+  <a href="{{ url_for('new_bill') }}" class="btn btn-brand"><i class="bi bi-plus-lg me-1"></i>New Bill</a>
+</div>
+<div class="bg-white rounded-xl shadow-sm p-3 mb-3">
+  <form class="row g-2" method="GET">
+    <div class="col-md-10">
+      <div class="input-group">
+        <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+        <input type="text" class="form-control" name="q" placeholder="Search by customer name or phone..." value="{{ q }}">
+      </div>
+    </div>
+    <div class="col-md-2"><button class="btn btn-brand w-100">Search</button></div>
+  </form>
+</div>
+
+<div class="bg-white rounded-xl shadow-sm overflow-hidden">
+<table class="table mb-0 align-middle">
+  <thead><tr><th>Bill</th><th>Customer</th><th>Items</th><th>Billed By</th><th>Status</th><th>Total</th><th></th></tr></thead>
+  <tbody>
+    {% for b in bills %}
+    <tr>
+      <td>#BR-{{ '%04d'|format(b.id) }}<div class="small text-muted">{{ b.created_at.strftime('%d %b %Y') }}</div></td>
+      <td>{{ b.customer.name }}<div class="small text-muted">{{ b.customer.phone or '' }}</div></td>
+      <td>{% for i in b.items %}{{ i.material.image_emoji }}{% endfor %}<div class="small text-muted">{{ b.items|length }} item(s)</div></td>
+      <td>{{ b.biller.name }}</td>
+      <td>
+        <span class="badge-status badge-{{ b.status }}">{{ b.status }}</span>
+        {% if b.is_overdue %}<div class="mt-1"><span class="badge bg-danger">Overdue</span></div>{% endif %}
+      </td>
+      <td class="fw-semibold">₹{{ b.grand_total|round(0)|int }}</td>
+      <td><a href="{{ url_for('bill_detail', bill_id=b.id) }}" class="btn btn-sm btn-outline-brand">Open</a></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="7" class="text-muted text-center py-4">No bills yet.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

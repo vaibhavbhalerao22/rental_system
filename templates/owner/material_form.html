@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <div class="card p-4">
+      <h4 class="fw-bold mb-1"><i class="bi bi-{{ 'pencil-square' if material else 'plus-circle' }} text-warning me-2"></i>{{ "Edit" if material else "Add" }} Material</h4>
+      <p class="text-muted small mb-4">List bamboos, tools, machines — set price, deposit and stock.</p>
+      <form method="POST">
+        <div class="row">
+          <div class="col-md-8 mb-3">
+            <label class="form-label">Name</label>
+            <input type="text" class="form-control" name="name" value="{{ material.name if material else '' }}" placeholder="e.g. Bamboo, Hatodi, Concrete Mixer" required>
+          </div>
+          <div class="col-md-4 mb-3">
+            <label class="form-label">Icon (emoji)</label>
+            <input type="text" class="form-control" name="image_emoji" value="{{ material.image_emoji if material else '🧱' }}" maxlength="4">
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Category</label>
+          <select class="form-select" name="category_id" required>
+            {% for c in categories %}
+            <option value="{{ c.id }}" {% if material and material.category_id == c.id %}selected{% endif %}>{{ c.icon }} {{ c.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Description</label>
+          <textarea class="form-control" name="description" rows="2" placeholder="Condition, specs, usage notes...">{{ material.description if material else '' }}</textarea>
+        </div>
+        <div class="row">
+          <div class="col-md-4 mb-3">
+            <label class="form-label">Price / day (₹)</label>
+            <input type="number" step="0.01" class="form-control" name="price_per_day" value="{{ material.price_per_day if material else '' }}" required>
+          </div>
+          <div class="col-md-4 mb-3">
+            <label class="form-label">Deposit (₹)</label>
+            <input type="number" step="0.01" class="form-control" name="deposit_amount" value="{{ material.deposit_amount if material else 0 }}">
+          </div>
+          <div class="col-md-4 mb-3">
+            <label class="form-label">Total Quantity</label>
+            <input type="number" min="1" class="form-control" name="quantity_total" value="{{ material.quantity_total if material else 1 }}" required>
+          </div>
+        </div>
+        {% if material %}
+        <div class="form-check form-switch mb-3">
+          <input class="form-check-input" type="checkbox" role="switch" name="is_active" id="is_active" {% if material.is_active %}checked{% endif %}>
+          <label class="form-check-label" for="is_active">Active (visible in catalog & billing)</label>
+        </div>
+        {% endif %}
+        <button class="btn btn-brand w-100 py-2" type="submit"><i class="bi bi-check2-circle me-1"></i>Save Material</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<h3 class="section-title mb-3"><i class="bi bi-truck text-warning me-2"></i>Active Rentals</h3>
+<div class="bg-white rounded-xl shadow-sm overflow-hidden">
+<table class="table mb-0 align-middle">
+  <thead><tr><th>Item</th><th>Customer</th><th>Bill</th><th>Due Date</th><th>Qty</th><th></th></tr></thead>
+  <tbody>
+    {% for i in items %}
+    <tr class="{{ 'table-danger' if i.is_overdue else '' }}">
+      <td>{{ i.material.image_emoji }} {{ i.material.name }}</td>
+      <td>{{ i.bill.customer.name }}<div class="small text-muted">{{ i.bill.customer.phone or '' }}</div></td>
+      <td><a href="{{ url_for('bill_detail', bill_id=i.bill_id) }}">#BR-{{ '%04d'|format(i.bill_id) }}</a></td>
+      <td>{{ i.end_date }}{% if i.is_overdue %}<div class="small text-danger fw-semibold">Overdue!</div>{% endif %}</td>
+      <td>{{ i.quantity }}</td>
+      <td>
+        <form method="POST" action="{{ url_for('return_item', bill_id=i.bill_id, item_id=i.id) }}">
+          <button class="btn btn-sm btn-brand"><i class="bi bi-box-arrow-in-down"></i> Return</button>
+        </form>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="6" class="text-muted text-center py-4">No active rentals right now. 🎉</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

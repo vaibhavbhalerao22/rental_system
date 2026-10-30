@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-9">
+    <div class="row g-0 auth-wrap">
+      <div class="col-md-5 auth-side">
+        <h2 class="fw-bold">Welcome back 👋</h2>
+        <p class="text-white-50">Staff login for billing & inventory, or customer login to track your rentals.</p>
+        <ul>
+          <li><i class="bi bi-check-circle-fill mt-1"></i><span>Owners get full control of the shop</span></li>
+          <li><i class="bi bi-check-circle-fill mt-1"></i><span>Billers create & manage rental bills</span></li>
+          <li><i class="bi bi-check-circle-fill mt-1"></i><span>Customers track their own rental history</span></li>
+        </ul>
+      </div>
+      <div class="col-md-7">
+        <div class="p-5">
+          <h4 class="fw-bold mb-4">Login</h4>
+          <form method="POST">
+            <div class="mb-3">
+              <label class="form-label">Email</label>
+              <div class="input-group">
+                <span class="input-group-text bg-white"><i class="bi bi-envelope"></i></span>
+                <input type="email" class="form-control" name="email" required autofocus>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Password</label>
+              <div class="input-group">
+                <span class="input-group-text bg-white"><i class="bi bi-lock"></i></span>
+                <input type="password" class="form-control" name="password" required>
+              </div>
+            </div>
+            <button class="btn btn-brand w-100 py-2" type="submit"><i class="bi bi-box-arrow-in-right me-1"></i>Login</button>
+          </form>
+          <p class="mt-3 mb-0 small text-muted">New customer? <a href="{{ url_for('register') }}">Sign up to track your rentals</a></p>
+          <hr>
+          <div class="small text-muted bg-light rounded-xl p-3">
+            <div class="fw-semibold mb-1"><i class="bi bi-info-circle me-1"></i>Demo logins</div>
+            Owner — owner@shop.com / owner123<br>
+            Biller — biller@shop.com / biller123
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

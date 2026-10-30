@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Bill #BR-{{ '%04d'|format(bill.id) }} — {{ shop.shop_name }}</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  body{ font-family:'Inter',sans-serif; background:#f6f4f1; padding:2rem 0; }
+  h1,h2,h3,h4{ font-family:'Sora',sans-serif; }
+  .invoice-box{ max-width:820px; margin:auto; background:#fff; border-radius:16px; padding:3rem; box-shadow:0 8px 30px rgba(0,0,0,.08); }
+  .brand{ font-weight:800; color:#1b263b; }
+  .brand .accent{ color:#ff6a00; }
+  table th{ background:#f1eee9; }
+  .status-tag{ display:inline-block; padding:.4rem .9rem; border-radius:30px; font-weight:600; font-size:.85rem; }
+  .badge-Ongoing{ background:#dbe4ff;color:#28349b; }
+  .badge-Returned{ background:#d4f5e9;color:#0a7a52; }
+  .badge-Cancelled{ background:#fde2e1;color:#a4231c; }
+  @media print { .no-print{ display:none; } body{ background:#fff; } .invoice-box{ box-shadow:none; } }
+</style>
+</head>
+<body>
+<div class="invoice-box">
+  <div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+      <div class="fs-3 brand">🏗️ {{ shop.shop_name }}</div>
+      <div class="text-muted small">{{ shop.address }}</div>
+      <div class="text-muted small">Ph: {{ shop.phone }}{% if shop.gst_no %} · GSTIN: {{ shop.gst_no }}{% endif %}</div>
+    </div>
+    <div class="text-end">
+      <h4 class="mb-1">Rental Invoice</h4>
+      <div class="text-muted small">#BR-{{ '%04d'|format(bill.id) }}</div>
+      <div class="text-muted small">{{ bill.created_at.strftime('%d %b %Y, %I:%M %p') }}</div>
+    </div>
+  </div>
+  <hr>
+  <div class="row mb-4">
+    <div class="col-6">
+      <div class="text-muted small text-uppercase">Billed To</div>
+      <div class="fw-semibold">{{ bill.customer.name }}</div>
+      <div class="small">{{ bill.customer.phone or '' }}</div>
+      <div class="small">{{ bill.customer.address or '' }}</div>
+    </div>
+    <div class="col-6 text-end">
+      <div class="text-muted small text-uppercase">Billed By</div>
+      <div class="fw-semibold">{{ bill.biller.name }}</div>
+      <div class="small">{{ shop.shop_name }}</div>
+    </div>
+  </div>
+
+  <table class="table">
+    <thead>
+      <tr><th>Item</th><th>Duration</th><th>Qty</th><th>Rate/day</th><th>Status</th><th class="text-end">Amount</th></tr>
+    </thead>
+    <tbody>
+      {% for i in bill.items %}
+      <tr>
+        <td>{{ i.material.image_emoji }} {{ i.material.name }}</td>
+        <td>{{ i.start_date }} → {{ i.end_date }}<div class="small text-muted">{{ i.days }} day(s)</div></td>
+        <td>{{ i.quantity }}</td>
+        <td>₹{{ i.rate_per_day|round(0)|int }}</td>
+        <td>
+          <span class="status-tag badge-{{ i.status }}">{{ i.status }}</span>
+          {% if i.is_overdue %}<div class="small text-danger mt-1">Overdue</div>{% endif %}
+        </td>
+        <td class="text-end">
+          ₹{{ i.subtotal|round(0)|int }}
+          {% if i.status != 'Cancelled' %}<div class="small text-muted">+₹{{ i.deposit_total|round(0)|int }} dep.</div>{% endif %}
+          {% if i.late_fee %}<div class="small text-danger">+₹{{ i.late_fee|round(0)|int }} late</div>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+      <tr>
+        <td colspan="5" class="text-end text-muted">Rental Subtotal</td>
+        <td class="text-end">₹{{ bill.subtotal|round(0)|int }}</td>
+      </tr>
+      <tr>
+        <td colspan="5" class="text-end text-muted">Refundable Security Deposit</td>
+        <td class="text-end">₹{{ bill.deposit_total|round(0)|int }}</td>
+      </tr>
+      {% if bill.late_fee_total %}
+      <tr>
+        <td colspan="5" class="text-end text-danger">Late Return Fees</td>
+        <td class="text-end text-danger">₹{{ bill.late_fee_total|round(0)|int }}</td>
+      </tr>
+      {% endif %}
+      <tr class="fw-bold fs-5">
+        <td colspan="5" class="text-end">Total Payable</td>
+        <td class="text-end">₹{{ bill.grand_total|round(0)|int }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="d-flex justify-content-between align-items-center mt-3">
+    <span class="status-tag badge-{{ bill.status }}">Overall: {{ bill.status }}</span>
+    {% if bill.is_overdue %}<span class="badge bg-danger">Some items overdue</span>{% endif %}
+  </div>
+
+  {% if staff_view %}
+  <hr class="mt-4">
+  <h6 class="fw-bold mb-3">Item Actions</h6>
+  <div class="row g-2">
+    {% for i in bill.items %}
+    {% if i.status == 'Ongoing' %}
+    <div class="col-md-6">
+      <div class="d-flex justify-content-between align-items-center border rounded-xl p-2 px-3">
+        <span>{{ i.material.image_emoji }} {{ i.material.name }} ×{{ i.quantity }}</span>
+        <span>
+          <form method="POST" action="{{ url_for('return_item', bill_id=bill.id, item_id=i.id) }}" class="d-inline">
+            <button class="btn btn-sm btn-brand"><i class="bi bi-box-arrow-in-down"></i> Return</button>
+          </form>
+          <form method="POST" action="{{ url_for('cancel_item', bill_id=bill.id, item_id=i.id) }}" class="d-inline" onsubmit="return confirm('Void this item?');">
+            <button class="btn btn-sm btn-outline-danger"><i class="bi bi-x-lg"></i></button>
+          </form>
+        </span>
+      </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <hr class="mt-4">
+  <div class="text-center text-muted small">Thank you for renting with {{ shop.shop_name }}. Deposit refunds are processed after material inspection.</div>
+
+  <div class="text-center mt-4 no-print">
+    <button class="btn btn-dark" onclick="window.print()"><i class="bi bi-printer"></i> Print / Save PDF</button>
+    {% if staff_view %}<a href="{{ url_for('bills_list') }}" class="btn btn-outline-secondary">Back to Bills</a>{% endif %}
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block content %}
+<h3 class="section-title mb-3"><i class="bi bi-person-badge text-warning me-2"></i>Staff / Billers</h3>
+<div class="row g-3">
+  <div class="col-md-4">
+    <div class="card p-4">
+      <h6 class="fw-bold mb-3">Add Biller Account</h6>
+      <form method="POST">
+        <div class="mb-2">
+          <label class="form-label small">Full Name</label>
+          <input type="text" class="form-control" name="name" required>
+        </div>
+        <div class="mb-2">
+          <label class="form-label small">Email</label>
+          <input type="email" class="form-control" name="email" required>
+        </div>
+        <div class="mb-2">
+          <label class="form-label small">Phone</label>
+          <input type="text" class="form-control" name="phone">
+        </div>
+        <div class="mb-3">
+          <label class="form-label small">Password</label>
+          <input type="password" class="form-control" name="password" required minlength="4">
+        </div>
+        <button class="btn btn-brand w-100"><i class="bi bi-person-plus me-1"></i>Create Biller</button>
+      </form>
+    </div>
+  </div>
+  <div class="col-md-8">
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+    <table class="table mb-0 align-middle">
+      <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Status</th><th class="text-end"></th></tr></thead>
+      <tbody>
+        {% for b in billers %}
+        <tr>
+          <td class="d-flex align-items-center gap-2"><span class="avatar-circle" style="background:linear-gradient(135deg,#1b263b,#3a4a6b);color:#fff;">{{ b.name[0]|upper }}</span>{{ b.name }}</td>
+          <td>{{ b.email }}</td>
+          <td>{{ b.phone or '—' }}</td>
+          <td>{% if b.is_active_account %}<span class="badge-status badge-Returned">Active</span>{% else %}<span class="badge-status badge-Rejected">Suspended</span>{% endif %}</td>
+          <td class="text-end">
+            <form method="POST" action="{{ url_for('toggle_staff', user_id=b.id) }}">
+              <button class="btn btn-sm btn-outline-secondary">{{ 'Suspend' if b.is_active_account else 'Reactivate' }}</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="text-muted text-center py-4">No billers yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block content %}
+<h3 class="section-title mb-3"><i class="bi bi-grid-3x3-gap-fill text-warning me-2"></i>Our Catalog</h3>
+
+<div class="bg-white rounded-xl shadow-sm p-3 mb-4">
+  <form class="row g-2" method="GET">
+    <div class="col-md-7">
+      <div class="input-group">
+        <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+        <input type="text" class="form-control" name="q" placeholder="Search bamboo, grinder, mixer..." value="{{ q }}">
+      </div>
+    </div>
+    <div class="col-md-4">
+      <select class="form-select" name="category">
+        <option value="">All Categories</option>
+        {% for c in categories %}
+        <option value="{{ c.id }}" {% if category_id == c.id %}selected{% endif %}>{{ c.icon }} {{ c.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-1">
+      <button class="btn btn-brand w-100" type="submit"><i class="bi bi-funnel"></i></button>
+    </div>
+  </form>
+</div>
+
+<div class="row g-3">
+  {% for m in materials %}
+  <div class="col-md-4">
+    <div class="material-card card-hover">
+      <div class="material-banner">
+        {{ m.image_emoji }}
+        <span class="badge stock-badge {{ 'bg-success' if m.quantity_available > 0 else 'bg-secondary' }}">
+          {{ m.quantity_available if m.quantity_available > 0 else 'Out of stock' }}{{ ' available' if m.quantity_available > 0 else '' }}
+        </span>
+      </div>
+      <div class="material-body">
+        <div class="text-muted small mb-1">{{ m.category.icon }} {{ m.category.name }}</div>
+        <h5 class="mb-1">{{ m.name }}</h5>
+        <p class="small text-muted mb-2" style="min-height:2.4em;">{{ (m.description or "")[:80] }}{% if m.description and m.description|length > 80 %}…{% endif %}</p>
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="price-tag">₹{{ m.price_per_day|round(0)|int }}<span class="fs-6 fw-normal text-muted">/day</span></div>
+            <div class="small text-muted">+₹{{ m.deposit_amount|round(0)|int }} deposit</div>
+          </div>
+          {% if current_user.is_authenticated and current_user.role in ['owner','biller'] %}
+          <a href="{{ url_for('new_bill') }}" class="btn btn-brand btn-sm">Bill it <i class="bi bi-receipt"></i></a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="col-12 text-center py-5">
+    <i class="bi bi-inbox display-4 text-muted"></i>
+    <p class="text-muted mt-2">No materials match your search.</p>
+  </div>
+  {% endfor %}
+</div>
+{% if not current_user.is_authenticated %}
+<div class="alert alert-light border mt-4 text-center">
+  <i class="bi bi-info-circle me-1"></i>Visit us in person or call <strong>{{ shop.phone }}</strong> to rent — our staff will bill you at the counter.
+</div>
+{% endif %}
+{% endblock %}

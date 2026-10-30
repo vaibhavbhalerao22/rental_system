@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block content %}
+<h3 class="section-title mb-3"><i class="bi bi-speedometer2 text-warning me-2"></i>Owner Dashboard</h3>
+<div class="row g-3">
+  <div class="col-md-4 col-lg-2">
+    <div class="stat-card">
+      <div class="icon-badge bg-tint-teal"><i class="bi bi-cash-stack"></i></div>
+      <div class="text-muted small">Total Revenue</div>
+      <div class="fs-4 fw-bold">₹{{ stats.total_revenue|round(0)|int }}</div>
+    </div>
+  </div>
+  <div class="col-md-4 col-lg-2">
+    <div class="stat-card">
+      <div class="icon-badge bg-tint-blue"><i class="bi bi-journal-text"></i></div>
+      <div class="text-muted small">Total Bills</div>
+      <div class="fs-3 fw-bold">{{ stats.total_bills }}</div>
+    </div>
+  </div>
+  <div class="col-md-4 col-lg-2">
+    <div class="stat-card">
+      <div class="icon-badge bg-tint-orange"><i class="bi bi-truck"></i></div>
+      <div class="text-muted small">Active Rentals</div>
+      <div class="fs-3 fw-bold">{{ stats.active_rentals }}</div>
+    </div>
+  </div>
+  <div class="col-md-4 col-lg-2">
+    <div class="stat-card">
+      <div class="icon-badge bg-tint-red"><i class="bi bi-exclamation-triangle"></i></div>
+      <div class="text-muted small">Overdue</div>
+      <div class="fs-3 fw-bold">{{ stats.overdue }}</div>
+    </div>
+  </div>
+  <div class="col-md-4 col-lg-2">
+    <div class="stat-card">
+      <div class="icon-badge bg-tint-blue"><i class="bi bi-box-seam"></i></div>
+      <div class="text-muted small">Materials</div>
+      <div class="fs-3 fw-bold">{{ stats.total_materials }}</div>
+    </div>
+  </div>
+  <div class="col-md-4 col-lg-2">
+    <div class="stat-card">
+      <div class="icon-badge bg-tint-teal"><i class="bi bi-people"></i></div>
+      <div class="text-muted small">Customers / Staff</div>
+      <div class="fs-4 fw-bold">{{ stats.total_customers }} / {{ stats.total_billers }}</div>
+    </div>
+  </div>
+</div>
+
+{% if stats.low_stock %}
+<div class="alert alert-warning mt-3 d-flex align-items-center gap-2">
+  <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+  <div><strong>Low stock:</strong> {% for m in stats.low_stock %}{{ m.image_emoji }} {{ m.name }} ({{ m.quantity_available }} left){% if not loop.last %}, {% endif %}{% endfor %}</div>
+</div>
+{% endif %}
+
+<div class="row g-3 mt-1">
+  <div class="col-md-6">
+    <div class="card p-4">
+      <h6 class="fw-bold mb-3"><i class="bi bi-pie-chart me-1"></i>Rental Items by Status</h6>
+      <canvas id="statusChart" height="220"></canvas>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card p-4">
+      <h6 class="fw-bold mb-3"><i class="bi bi-bar-chart me-1"></i>Revenue by Category</h6>
+      <canvas id="revenueChart" height="220"></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mt-1">
+  <div class="col-md-3"><a href="{{ url_for('inventory') }}" class="quicklink-card"><i class="bi bi-box-seam fs-4 d-block mb-2 text-primary"></i>Inventory</a></div>
+  <div class="col-md-3"><a href="{{ url_for('staff_page') }}" class="quicklink-card"><i class="bi bi-person-badge fs-4 d-block mb-2 text-primary"></i>Staff / Billers</a></div>
+  <div class="col-md-3"><a href="{{ url_for('bills_list') }}" class="quicklink-card"><i class="bi bi-journal-text fs-4 d-block mb-2 text-primary"></i>All Bills</a></div>
+  <div class="col-md-3"><a href="{{ url_for('settings_page') }}" class="quicklink-card"><i class="bi bi-sliders fs-4 d-block mb-2 text-primary"></i>Shop Settings</a></div>
+</div>
+
+<h5 class="mt-4 mb-3 section-title"><i class="bi bi-clock-history me-2 text-warning"></i>Recent Bills</h5>
+<div class="bg-white rounded-xl shadow-sm overflow-hidden">
+<table class="table mb-0 align-middle">
+  <thead><tr><th>Bill</th><th>Customer</th><th>Billed By</th><th>Status</th><th>Total</th></tr></thead>
+  <tbody>
+    {% for b in recent_bills %}
+    <tr>
+      <td><a href="{{ url_for('bill_detail', bill_id=b.id) }}">#BR-{{ '%04d'|format(b.id) }}</a></td>
+      <td>{{ b.customer.name }}</td>
+      <td>{{ b.biller.name }}</td>
+      <td><span class="badge-status badge-{{ b.status }}">{{ b.status }}</span></td>
+      <td class="fw-semibold">₹{{ b.grand_total|round(0)|int }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5" class="text-muted text-center py-4">No bills yet.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  new Chart(document.getElementById('statusChart'), {
+    type: 'doughnut',
+    data: {
+      labels: {{ chart_data.status_labels|tojson }},
+      datasets: [{
+        data: {{ chart_data.status_counts|tojson }},
+        backgroundColor: ['#0d6efd','#198754','#dc3545'],
+        borderWidth: 2, borderColor: '#fff'
+      }]
+    },
+    options: { plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: {size: 11} } } } }
+  });
+
+  new Chart(document.getElementById('revenueChart'), {
+    type: 'bar',
+    data: {
+      labels: {{ chart_data.category_labels|tojson }},
+      datasets: [{
+        label: 'Revenue (₹)',
+        data: {{ chart_data.category_revenue|tojson }},
+        backgroundColor: '#ff6a00',
+        borderRadius: 6
+      }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true } }
+    }
+  });
+</script>
+{% endblock %}
